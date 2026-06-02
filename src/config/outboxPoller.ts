@@ -1,11 +1,12 @@
 import { prisma } from './prisma';
-import { publishWalletCreationEvent } from './bullmq';
+import { publishWalletCreationEvent, publishTransactionEvent } from './bullmq';
 import cron from 'node-cron';
+import { OutboxEvent } from '@prisma/client';
 
 async function pollOutbox() {
   try {
-    // We use a raw query with FOR UPDATE SKIP LOCKED to safely fetch events in a concurrent environment
-    const events = await prisma.$queryRaw<any[]>`
+    // skip locked used.
+    const events = await prisma.$queryRaw<OutboxEvent[]>`
       SELECT * FROM outbox_events 
       WHERE status = 'PENDING' 
       ORDER BY "createdAt" ASC 
@@ -20,7 +21,11 @@ async function pollOutbox() {
       
       try {
         if (event.topic === 'USER_CREATED') {
-          await publishWalletCreationEvent(event.payload.userId);
+          const payload = event.payload as { userId: string };
+          await publishWalletCreationEvent(payload.userId);
+        } else if (event.topic === 'TRANSACTION_CREATED') {
+          const payload = event.payload as any;
+          await publishTransactionEvent(payload);
         }
 
         // mark as processed

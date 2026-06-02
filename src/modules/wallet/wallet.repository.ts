@@ -1,5 +1,5 @@
 import { prisma } from '../../config/prisma';
-import { Prisma } from '../../../generated/prisma/client';
+import { Prisma } from '@prisma/client';
 
 export class WalletRepository {
   async create(userId: string) {

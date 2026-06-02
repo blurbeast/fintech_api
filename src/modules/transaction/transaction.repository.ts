@@ -1,5 +1,5 @@
 import { prisma } from '../../config/prisma';
-import { TransactionType, TransactionStatus, Prisma } from '../../../generated/prisma/client';
+import { TransactionType, TransactionStatus, Prisma } from '@prisma/client';
 
 export class TransactionRepository {
   async create(data: {
@@ -23,13 +23,31 @@ export class TransactionRepository {
   async findById(id: string) {
     return prisma.transaction.findUnique({
       where: { id },
+      include: { wallet: true },
     });
   }
 
-  async findByWalletId(walletId: string) {
-    return prisma.transaction.findMany({
-      where: { walletId },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findTransactions(filters: { userId?: string; walletId?: string }, skip: number, take: number) {
+    const where: any = {};
+    if (filters.walletId) {
+      where.walletId = filters.walletId;
+    }
+    if (filters.userId) {
+      where.wallet = {
+        userId: filters.userId,
+      };
+    }
+
+    const [transactions, total] = await Promise.all([
+      prisma.transaction.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.transaction.count({ where }),
+    ]);
+
+    return { transactions, total, page: Math.floor(skip / take) + 1, limit: take };
   }
 }

@@ -1,15 +1,18 @@
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../../generated/prisma/client';
-import { env } from './env';
+import { PrismaClient } from '@prisma/client';
 
-const connectionString = env.DATABASE_URL;
+const connectionString = process.env.DATABASE_URL;
 
-// Initialize pg pool
-const pool = new Pool({ connectionString });
+// initialize pool
+const pool = new Pool({ 
+  connectionString,
+  min: 20,
+  max: 50,
+});
 
-// Initialize Prisma adapter
+// initialize adapter
 const adapter = new PrismaPg(pool);
 
-// Initialize Prisma client with adapter
+// set up client with adapter
 export const prisma = new PrismaClient({ adapter });

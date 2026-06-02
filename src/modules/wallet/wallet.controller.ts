@@ -42,11 +42,4 @@ export class WalletController {
       data: result,
     });
   }
-
-  @Catch()
-  async getTransactions(req: AuthRequest, res: Response) {
-    const userId = req.user!.userId;
-    const transactions = await this.walletService.getTransactions(userId);
-    res.status(200).json(transactions);
-  }
 }

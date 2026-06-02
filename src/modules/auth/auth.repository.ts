@@ -25,7 +25,7 @@ export class AuthRepository {
       });
 
       return user;
-    });
+    },);
   }
 
   async findByEmail(email: string) {

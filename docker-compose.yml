@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:17-alpine
+    image: postgres:15-alpine
     container_name: fintech_db
     restart: always
     environment:
@@ -30,18 +30,18 @@ services:
     container_name: fintech_app
     restart: always
     ports:
-      - '3000:3000'
+      - '3001:3000'
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - PORT=3000
+      - IP_ADDRESS=0.0.0.0
       - DATABASE_URL=postgresql://postgres:password@db:5432/fintech_wallet?schema=public
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - JWT_SECRET=supersecretjwtkey_change_me_in_prod
+      - JWT_SECRET=${JWT_SECRET:-randomsalt}
     depends_on:
       - db
       - redis
-    command: npm run dev
 
 volumes:
   pgdata:

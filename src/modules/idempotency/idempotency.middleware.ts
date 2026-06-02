@@ -8,20 +8,17 @@ export const idempotencyMiddleware = (idempotencyFor: string) => {
     const key = req.headers['idempotency-key'] as string;
 
     if (!key) {
-      // If no key is provided, just proceed (or throw error if you want to make it strict)
       return next();
     }
 
     try {
       const existingKey = await repository.findByKey(key);
       if (existingKey) {
-        // Return the cached response
         return res.status(existingKey.responseStatus).json(existingKey.responseBody);
       }
 
-      // Intercept res.json to save the response
       const originalJson = res.json;
-      res.json = function (body: any) {
+      res.json = function (body: unknown) {
         // Only save if the status is a success code (e.g., 200, 201)
         if (res.statusCode >= 200 && res.statusCode < 300) {
           repository.create(key, idempotencyFor, res.statusCode, body).catch(console.error);

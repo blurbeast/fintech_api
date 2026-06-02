@@ -4,7 +4,7 @@ import { env } from '../../config/env';
 import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { User } from '../../../generated/prisma/client';
+import { User } from '@prisma/client';
 
 export class AuthService {
   constructor(private authRepository: AuthRepository) {}
@@ -73,7 +73,7 @@ export class AuthService {
     return { token, refreshToken: newRefreshToken };
   }
 
-  private async signToken(user: User) {
+  private signToken(user: User) {
     const token = jwt.sign(
       {userId: user.id, email: user.email},
       env.JWT_SECRET,

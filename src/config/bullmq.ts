@@ -17,4 +17,13 @@ export const publishWalletCreationEvent = async (userId: string) => {
   });
 };
 
+export const transactionQueue = new Queue('transaction-creation-queue', { connection: connection as any });
+
+export const publishTransactionEvent = async (payload: any) => {
+  await transactionQueue.add('create-transaction', payload, {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 1000 },
+  });
+};
+
 export const bullmqConnection = connection;

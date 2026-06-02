@@ -2,10 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 
 // wrapper for try catch
 export function Catch() {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const next = args[2] as NextFunction;
       try {
         await originalMethod.apply(this, args);

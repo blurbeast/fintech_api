@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma';
+import { Prisma } from '@prisma/client';
 
 export class IdempotencyRepository {
   async findByKey(key: string) {
@@ -7,13 +8,13 @@ export class IdempotencyRepository {
     });
   }
 
-  async create(key: string, idempotencyFor: string, responseStatus: number, responseBody: any) {
+  async create(key: string, idempotencyFor: string, responseStatus: number, responseBody: unknown) {
     return prisma.idempotencyKey.create({
       data: {
         key,
         idempotencyFor,
         responseStatus,
-        responseBody,
+        responseBody: responseBody as Prisma.InputJsonValue,
       },
     });
   }

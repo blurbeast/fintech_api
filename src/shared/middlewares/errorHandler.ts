@@ -19,7 +19,7 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
     return res.status(401).json({ error: err.message });
   }
 
-  if (err.message === 'Wallet not found' || err.message === 'Recipient not found' || err.message === 'Recipient wallet not found') {
+  if (err.message === 'Wallet not found' || err.message === 'Recipient not found' || err.message === 'Recipient wallet not found' || err.message === 'User not found' || err.message === 'Sender wallet not found') {
     return res.status(404).json({ error: err.message });
   }
 
