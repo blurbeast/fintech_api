@@ -2,13 +2,15 @@ import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
+import { env } from './env';
+
 const connectionString = process.env.DATABASE_URL;
 
 // initialize pool
 const pool = new Pool({ 
   connectionString,
-  min: 20,
-  max: 50,
+  min: env.DB_POOL_MIN,
+  max: env.DB_POOL_MAX,
 });
 
 // initialize adapter

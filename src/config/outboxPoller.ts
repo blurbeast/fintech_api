@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { publishWalletCreationEvent, publishTransactionEvent } from './bullmq';
+import { env } from './env';
 import cron from 'node-cron';
 import { TOPICS } from './constants';
 import { OutboxEvent, Prisma } from '@prisma/client';
@@ -34,17 +35,20 @@ async function updateEventStatus(eventId: string, status: 'PROCESSED' | 'FAILED'
 
 async function pollOutbox() {
   try {
+    let processedCount = 0;
+
     await prisma.$transaction(async (tx) => {
       // fifo approach for ordering purposes
-      // fifo approach so as to capture old stored data
-      const events = await tx.$queryRaw<OutboxEvent[]>`
+      // Use env limit
+      const events = await tx.$queryRawUnsafe<OutboxEvent[]>(`
         SELECT * FROM outbox_events 
         WHERE status = 'PENDING' 
         ORDER BY "createdAt" ASC 
         FOR UPDATE SKIP LOCKED 
-        LIMIT 100
-      `;
+        LIMIT $1
+      `, env.OUTBOX_POLL_LIMIT);
 
+      processedCount = events.length;
       if (events.length === 0) return;
 
       for (const event of events) {
@@ -69,14 +73,36 @@ async function pollOutbox() {
         }
       }
     });
+
+    return processedCount;
   } catch (error) {
     console.error('[OutboxPoller] Error polling outbox:', error);
+    return 0;
   }
 }
 
-// start polling every 2 seconds
-cron.schedule('*/2 * * * * *', () => {
-  pollOutbox().catch(console.error);
+let isPolling = false;
+
+async function runPoller() {
+  if (isPolling) return;
+  
+  isPolling = true;
+  try {
+    const processedCount = await pollOutbox();
+    if (processedCount === env.OUTBOX_POLL_LIMIT) {
+      isPolling = false;
+      setImmediate(runPoller);
+      return;
+    }
+  } catch (err) {
+    console.error('[OutboxPoller] Unhandled error during polling loop:', err);
+  } finally {
+    isPolling = false;
+  }
+}
+
+cron.schedule(env.OUTBOX_POLL_CRON, () => {
+  runPoller().catch(console.error);
 });
 
-console.log('[OutboxPoller] Started background cron poller...');
+console.log(`[OutboxPoller] Started background cron poller (Cron: ${env.OUTBOX_POLL_CRON}, Limit: ${env.OUTBOX_POLL_LIMIT})...`);
