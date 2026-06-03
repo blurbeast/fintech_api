@@ -101,7 +101,7 @@ export class WalletService {
           topic: TOPICS.TRANSACTION_CREATED,
           payload: {
             walletId: senderWallet.id,
-            type: TransactionType.TRANSFER,
+            type: TransactionType.TRANSFER_OUT,
             amount: amountDecimal.negated().toNumber(),
             reference: `${reference}_OUT`,
           },
@@ -113,7 +113,7 @@ export class WalletService {
           topic: TOPICS.TRANSACTION_CREATED,
           payload: {
             walletId: recipientWallet.id,
-            type: TransactionType.TRANSFER,
+            type: TransactionType.TRANSFER_IN,
             amount: amountDecimal.toNumber(),
             reference: `${reference}_IN`,
           },

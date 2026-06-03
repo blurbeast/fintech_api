@@ -11,6 +11,11 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
     });
   }
 
+  // express.json() JSON parsing errors
+  if (err instanceof SyntaxError && 'body' in err) {
+    return res.status(400).json({ error: 'Invalid JSON payload' });
+  }
+
   if (err.message === 'User with this email already exists') {
     return res.status(409).json({ error: err.message });
   }

@@ -43,7 +43,8 @@ model Wallet {
 
 enum TransactionType {
   FUND
-  TRANSFER
+  TRANSFER_IN
+  TRANSFER_OUT
   WITHDRAWAL
 }
 
@@ -60,7 +61,7 @@ model Transaction {
   type        TransactionType
   amount      Decimal          @db.Decimal(12, 2)
   status      TransactionStatus @default(PENDING)
-  reference   String           @unique // Unique reference for idempotency logic or external tracing
+  reference   String           @unique 
   createdAt   DateTime         @default(now())
 
   @@index([walletId])
@@ -70,7 +71,7 @@ model Transaction {
 model IdempotencyKey {
   id             String   @id @default(uuid()) @db.Uuid
   key            String   @unique
-  idempotencyFor String   // What operation this key is for, e.g., "FUND_WALLET", "TRANSFER"
+  idempotencyFor String   
   responseStatus Int
   responseBody   Json
   createdAt      DateTime @default(now())
