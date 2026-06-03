@@ -31,12 +31,17 @@ export class WalletService {
     const amountDecimal = new Prisma.Decimal(amount);
     const reference = this.generateReference('FUND');
 
-    const [updatedWallet] = await prisma.$transaction([
-      prisma.wallet.update({
+    const updatedWallet = await prisma.$transaction(async (tx) => {
+      const [lockedWallet] = await tx.$queryRaw<{ balance: Prisma.Decimal }[]>`
+        SELECT balance FROM wallets WHERE id = ${wallet.id}::uuid FOR UPDATE
+      `;
+
+      const updated = await tx.wallet.update({
         where: { id: wallet.id },
         data: { balance: { increment: amountDecimal } },
-      }),
-      prisma.outboxEvent.create({
+      });
+
+      await tx.outboxEvent.create({
         data: {
           topic: TOPICS.TRANSACTION_CREATED,
           payload: {
@@ -46,10 +51,15 @@ export class WalletService {
             reference,
           },
         },
-      }),
-    ]);
+      });
 
-    return { wallet: updatedWallet, reference };
+      return updated;
+    });
+
+    return { 
+      message: 'Wallet funded successfully',
+      data: { wallet: updatedWallet, reference }
+    };
   }
 
   async transfer(senderId: string, recipientEmail: string, amount: number) {
@@ -149,7 +159,7 @@ export class WalletService {
           payload: {
             walletId: wallet.id,
             type: TransactionType.WITHDRAWAL,
-            amount: amountDecimal.toNumber(),
+            amount: amountDecimal.negated().toNumber(),
             reference,
           },
         },
@@ -158,6 +168,9 @@ export class WalletService {
       return updated;
     });
 
-    return { wallet: updatedWallet, reference };
+    return { 
+      message: 'Withdrawal successful',
+      data: { wallet: updatedWallet, reference }
+    };
   }
 }

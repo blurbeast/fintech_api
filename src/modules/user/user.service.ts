@@ -11,7 +11,18 @@ export class UserService {
     if (!user) {
       throw new Error('User not found');
     }
-    return user;
+
+    const { password, ...other } = user.profile || { password: '' };
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        created_at: user.createdAt,
+      },
+      profile: other,
+      wallet: user.wallet,
+    };
   }
 
   async getUserByEmail(email: string) {

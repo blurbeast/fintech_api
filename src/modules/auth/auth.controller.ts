@@ -9,40 +9,19 @@ export class AuthController {
 
   @Catch()
   async register(req: Request, res: Response) {
-    const data = req.body;
-    const user = await this.authService.register(data);
-    
-    res.status(201).json({
-      message: 'User registered successfully. Wallet creation is processing.',
-      user: {
-        id: user.id,
-        email: user.email,
-        created_at: user.createdAt,
-      },
-    });
+    const result = await this.authService.register(req.body);
+    res.status(201).json(result);
   }
 
   @Catch()
   async login(req: Request, res: Response) {
-    const data = req.body;
-    const result = await this.authService.login(data);
-    
-    res.status(200).json({
-      message: 'Login successful',
-      token: result.token,
-      refreshToken: result.refreshToken,
-    });
+    const result = await this.authService.login(req.body);
+    res.status(200).json(result);
   }
 
   @Catch()
   async refresh(req: Request, res: Response) {
-    const data = req.body;
-    const result = await this.authService.refresh(data.refresh_token);
-
-    res.status(200).json({
-      message: 'Token refreshed successfully',
-      token: result.token,
-      refreshToken: result.refreshToken,
-    });
+    const result = await this.authService.refresh(req.body.refresh_token);
+    res.status(200).json(result);
   }
 }

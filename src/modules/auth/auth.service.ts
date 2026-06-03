@@ -26,7 +26,14 @@ export class AuthService {
 
     const user = await this.authRepository.registerWithOutbox(data, hashedPassword);
 
-    return user;
+    return {
+      message: 'User registered successfully. Wallet creation is processing.',
+      user: {
+        id: user.id,
+        email: user.email,
+        created_at: user.createdAt,
+      },
+    };
   }
 
   async login(data: LoginDto) {
@@ -47,7 +54,11 @@ export class AuthService {
 
     await this.authRepository.createSession(user.id, refreshToken, expiresAt);
 
-    return { token, refreshToken, userId: user.id };
+    return {
+      message: 'Login successful',
+      token,
+      refreshToken,
+    };
   }
 
   async refresh(refreshToken: string) {
@@ -66,10 +77,8 @@ export class AuthService {
       throw new Error('User not found');
     }
 
-    // Invalidate old session
     await this.authRepository.deleteSession(session.id);
 
-    // Issue new tokens
     const token = this.signToken(user);
 
     const newRefreshToken = crypto.randomBytes(40).toString('hex');
@@ -77,7 +86,11 @@ export class AuthService {
 
     await this.authRepository.createSession(user.id, newRefreshToken, expiresAt);
 
-    return { token, refreshToken: newRefreshToken };
+    return {
+      message: 'Token refreshed successfully',
+      token,
+      refreshToken: newRefreshToken,
+    };
   }
 
   private signToken(user: User) {

@@ -5,26 +5,44 @@ import { env } from './config/env';
 import apiRoutes from './routes';
 import { setupSwagger } from './config/swagger';
 import { errorHandler } from './shared/middlewares/errorHandler';
-import './config/walletWorker';
-import './config/transactionWorker';
-import './config/outboxPoller';
+import { prisma } from './config/prisma';
+import { bullmqConnection } from './config/bullmq';
 
-const app = express();
-app.use(express.json());
+async function bootstrap() {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    console.log('Successfully connected to the Database');
 
-// swagger setup
-setupSwagger(app);
+    await bullmqConnection.ping();
+    console.log('Successfully connected to Redis');
 
-app.use('/api', apiRoutes);
+    require('./config/walletWorker');
+    require('./config/transactionWorker');
+    require('./config/outboxPoller');
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK' });
-});
-app.use(errorHandler);
+    const app = express();
+    app.use(express.json());
 
-app.listen(Number(env.PORT), env.IP_ADDRESS, () => {
-  console.log(`Server is running on http://${env.IP_ADDRESS}:${env.PORT}`);
-  console.log(`Swagger docs available at http://${env.IP_ADDRESS}:${env.PORT}/api-docs`);
-});
+    // swagger setup
+    setupSwagger(app);
 
-export default app;
+    app.use('/api', apiRoutes);
+
+    app.get('/health', (req, res) => {
+      res.json({ status: 'OK' });
+    });
+    
+    app.use(errorHandler);
+
+    app.listen(Number(env.PORT), env.IP_ADDRESS, () => {
+      console.log(`Server is running on http://${env.IP_ADDRESS}:${env.PORT}`);
+      console.log(`Swagger docs available at http://${env.IP_ADDRESS}:${env.PORT}/api-docs`);
+    });
+
+  } catch (error) {
+    console.error('Failed to start server due to infrastructure connection error:', error);
+    process.exit(1);
+  }
+}
+
+bootstrap();

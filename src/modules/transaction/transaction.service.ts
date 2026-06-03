@@ -9,14 +9,18 @@ export class TransactionService {
     @inject(TransactionRepository) private transactionRepository: TransactionRepository,
   ) {}
 
-  async getTransactions(filters: { userId?: string; walletId?: string }, page: number, limit: number) {
+  async getTransactions(filters: { userId?: string; walletId?: string }, requesterUserId: string, page: number, limit: number) {
     const skip = (page - 1) * limit;
-    return this.transactionRepository.findTransactions(filters, skip, limit);
+    const targetUserId = filters.userId || (!filters.walletId ? requesterUserId : undefined);
+
+    return this.transactionRepository.findTransactions({ ...filters, userId: targetUserId }, skip, limit);
   }
 
   async getTransactionById(id: string, userId: string) {
     const transaction = await this.transactionRepository.findById(id);
-    if (!transaction) return null;
+    if (!transaction) {
+      throw new Error('Transaction not found');
+    }
 
     if (transaction.wallet.userId !== userId) {
       throw new Error('Unauthorized to view this transaction');

@@ -21,7 +21,9 @@ A robust, enterprise-grade wallet API built with Node.js, Express, TypeScript, a
 
 ## API Documentation (Swagger)
 
-The API is fully documented using Swagger/OpenAPI. Once the server is running, you can view and interact with the endpoints at:   **http://localhost:3000/api-docs**
+The API is fully documented using Swagger/OpenAPI. Once the Docker server is running, you can view and interact with the endpoints at:   **http://localhost:3001/api-docs**
+
+*(Note: If you run the Node.js application natively without Docker, it will run on port `3000` instead)*
 
 ---
 
@@ -43,7 +45,7 @@ docker compose up -d --build
 ```
 
 ### 3. Database Migrations (Automatic)
-The database migrations are automatically run when the Docker container starts up. The server will be accessible at `http://localhost:3000`.
+The database migrations are automatically run when the Docker container starts up. The server will be accessible at `http://localhost:3001`.
 
 ---
 
