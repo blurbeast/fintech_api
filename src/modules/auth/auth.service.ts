@@ -48,11 +48,7 @@ export class AuthService {
     }
 
     const token = this.signToken(user);
-
-    const refreshToken = crypto.randomBytes(40).toString('hex');
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-
-    await this.authRepository.createSession(user.id, refreshToken, expiresAt);
+    const refreshToken = await this.generateAndStoreRefreshToken(user.id);
 
     return {
       message: 'Login successful',
@@ -80,11 +76,7 @@ export class AuthService {
     await this.authRepository.deleteSession(session.id);
 
     const token = this.signToken(user);
-
-    const newRefreshToken = crypto.randomBytes(40).toString('hex');
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-    await this.authRepository.createSession(user.id, newRefreshToken, expiresAt);
+    const newRefreshToken = await this.generateAndStoreRefreshToken(user.id);
 
     return {
       message: 'Token refreshed successfully',
@@ -103,4 +95,25 @@ export class AuthService {
     return token;
   }
     
+  private async generateAndStoreRefreshToken(userId: string) {
+    const refreshToken = crypto.randomBytes(40).toString('hex');
+    
+    const expireStr = env.JWT_REFRESH_EXPIRE_IN;
+    let msToAdd = 24 * 60 * 60 * 1000; // 1 day
+    
+    if (expireStr.endsWith('d')) {
+      msToAdd = parseInt(expireStr) * 24 * 60 * 60 * 1000;
+    } else if (expireStr.endsWith('h')) {
+      msToAdd = parseInt(expireStr) * 60 * 60 * 1000;
+    } else if (expireStr.endsWith('m')) {
+      msToAdd = parseInt(expireStr) * 60 * 1000;
+    } else if (!isNaN(parseInt(expireStr))) {
+      msToAdd = parseInt(expireStr); // milliseconds
+    }
+
+    const expiresAt = new Date(Date.now() + msToAdd);
+    await this.authRepository.createSession(userId, refreshToken, expiresAt);
+
+    return refreshToken;
+  }
 }

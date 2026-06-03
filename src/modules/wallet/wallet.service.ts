@@ -19,7 +19,11 @@ export class WalletService {
   }
 
   async getWalletByUserId(userId: string) {
-    return this.walletRepository.findByUserId(userId);
+    const wallet = await this.walletRepository.findByUserId(userId);
+
+    if (!wallet) throw new Error('user wallet not found');
+    
+    return wallet;
   }
 
   async fund(userId: string, amount: number) {

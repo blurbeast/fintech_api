@@ -38,14 +38,47 @@ Clone the repository and copy the environment file:
 cp .env.example .env
 ```
 
-### 2. Start the Application
+### 2. Run with Docker (Recommended)
 The entire application (App, PostgreSQL, Redis) is containerized. Start it with:
 ```bash
 docker compose up -d --build
 ```
-
-### 3. Database Migrations (Automatic)
 The database migrations are automatically run when the Docker container starts up. The server will be accessible at `http://localhost:3001`.
+
+### 3. Run Natively (Without Docker)
+If you prefer to run the Node.js application directly on your host machine while still utilizing Docker for the infrastructure (Postgres & Redis), follow these steps:
+
+1. **Start the Infrastructure**:
+   ```bash
+   docker compose up -d db redis
+   ```
+2. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+3. **Run Migrations & Generate Prisma Client**:
+   ```bash
+   npx prisma migrate dev
+   ```
+4. **Start the Application**:
+   ```bash
+   npm run dev
+   ```
+   *The server will run natively on `http://localhost:3000`.*
+
+### 4. Viewing Logs
+
+**If running via Docker:**
+```bash
+# view logs for all services app, db, redis
+docker compose logs -f
+
+# view logs for just the server
+docker compose logs -f app
+```
+
+**If running natively (No Docker):**
+When you run `npm run dev` or `npm start` natively, the logs will stream directly to your terminal's standard output.
 
 ---
 
@@ -119,7 +152,20 @@ Because of this, `SUM(amount)` in the ledger will always perfectly equal the wal
 }
 ```
 
-### 4. Fund Wallet (`POST /api/wallet/fund`)
+### 4. Get Wallet Details (`GET /api/wallet`)
+```json
+{
+  "wallet": {
+    "id": "cf8591b7-9a42-46bc-96dd-31ea3fb34f6f",
+    "userId": "16a439a8-eb17-43e8-8a61-785486a7ee4d",
+    "balance": "5000",
+    "createdAt": "2026-06-03T07:34:48.062Z",
+    "updatedAt": "2026-06-03T08:30:23.281Z"
+  }
+}
+```
+
+### 5. Fund Wallet (`POST /api/wallet/fund`)
 ```json
 {
   "message": "Wallet funded successfully",
@@ -136,7 +182,7 @@ Because of this, `SUM(amount)` in the ledger will always perfectly equal the wal
 }
 ```
 
-### 5. Transfer Funds (`POST /api/wallet/transfer`)
+### 6. Transfer Funds (`POST /api/wallet/transfer`)
 ```json
 {
   "message": "Transfer queued successfully",
@@ -145,7 +191,7 @@ Because of this, `SUM(amount)` in the ledger will always perfectly equal the wal
 }
 ```
 
-### 6. Withdraw Funds (`POST /api/wallet/withdraw`)
+### 7. Withdraw Funds (`POST /api/wallet/withdraw`)
 ```json
 {
   "message": "Withdrawal successful",
@@ -162,7 +208,7 @@ Because of this, `SUM(amount)` in the ledger will always perfectly equal the wal
 }
 ```
 
-### 7. Transaction History (`GET /api/transactions`)
+### 8. Transaction History (`GET /api/transactions`)
 ```json
 {
   "transactions": [

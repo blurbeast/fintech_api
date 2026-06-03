@@ -22,6 +22,24 @@ router.use(authMiddleware);
 
 /**
  * @swagger
+ * /api/wallet:
+ *   get:
+ *     summary: Get wallet details including balance
+ *     tags: [Wallet]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Wallet details retrieved successfully
+ *       404:
+ *         description: Wallet not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/', walletController.getDetails.bind(walletController));
+
+/**
+ * @swagger
  * /api/wallet/fund:
  *   post:
  *     summary: Fund user wallet

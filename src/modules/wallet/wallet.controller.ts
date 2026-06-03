@@ -9,6 +9,14 @@ export class WalletController {
   constructor(@inject(WalletService) private walletService: WalletService) {}
 
   @Catch()
+  async getDetails(req: AuthRequest, res: Response) {
+    const userId = req.user!.userId;
+    const wallet = await this.walletService.getWalletByUserId(userId);
+
+    res.status(200).json({ wallet });
+  }
+
+  @Catch()
   async fund(req: AuthRequest, res: Response) {
     const userId = req.user!.userId;
     const { amount } = req.body;
