@@ -59,6 +59,7 @@ If you prefer to run the Node.js application directly on your host machine while
 3. **Run Migrations & Generate Prisma Client**:
    ```bash
    npx prisma migrate dev
+   npx prisma generate
    ```
 4. **Start the Application**:
    ```bash
