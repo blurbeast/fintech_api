@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import { User } from '@prisma/client';
 import { UserService } from '../user/user.service';
 import { injectable, singleton, inject } from 'tsyringe';
+import { AppError } from '../../shared/utils/AppError';
 
 @injectable()
 @singleton()
@@ -19,7 +20,7 @@ export class AuthService {
   async register(data: RegisterDto) {
     const existingUser = await this.authRepository.findByEmail(data.email);
     if (existingUser) {
-      throw new Error('User with this email already exists');
+      throw new AppError('User with this email already exists', 409);
     }
 
     const hashedPassword = await argon2.hash(data.password);
@@ -39,12 +40,12 @@ export class AuthService {
   async login(data: LoginDto) {
     const user = await this.authRepository.findByEmail(data.email);
     if (!user || !user.profile?.password) {
-      throw new Error('Invalid email or password');
+      throw new AppError('Invalid email or password', 401);
     }
 
     const isMatch = await argon2.verify(user.profile.password, data.password);
     if (!isMatch) {
-      throw new Error('Invalid email or password');
+      throw new AppError('Invalid email or password', 401);
     }
 
     const token = this.signToken(user);
@@ -60,17 +61,17 @@ export class AuthService {
   async refresh(refreshToken: string) {
     const session = await this.authRepository.findSessionByToken(refreshToken);
     if (!session) {
-      throw new Error('Invalid refresh token');
+      throw new AppError('Invalid refresh token', 401);
     }
 
     if (session.expiresAt < new Date()) {
       await this.authRepository.deleteSession(session.id);
-      throw new Error('Refresh token expired');
+      throw new AppError('Refresh token expired', 401);
     }
 
     const user = await this.authRepository.findById(session.userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new AppError('User not found', 404);
     }
 
     await this.authRepository.deleteSession(session.id);

@@ -5,6 +5,7 @@ import { Prisma, TransactionType } from '@prisma/client';
 import crypto from 'crypto';
 import { injectable, singleton, inject } from 'tsyringe';
 import { TOPICS } from '../../config/constants';
+import { AppError } from '../../shared/utils/AppError';
 
 @injectable()
 @singleton()
@@ -21,16 +22,16 @@ export class WalletService {
   async getWalletByUserId(userId: string) {
     const wallet = await this.walletRepository.findByUserId(userId);
 
-    if (!wallet) throw new Error('user wallet not found');
+    if (!wallet) throw new AppError('user wallet not found', 404);
     
     return wallet;
   }
 
   async fund(userId: string, amount: number) {
-    if (amount <= 0) throw new Error('Amount must be greater than 0');
+    if (amount <= 0) throw new AppError('Amount must be greater than 0', 400);
 
     const wallet = await this.walletRepository.findByUserId(userId);
-    if (!wallet) throw new Error('Wallet not found');
+    if (!wallet) throw new AppError('Wallet not found', 404);
 
     const amountDecimal = new Prisma.Decimal(amount);
     const reference = this.generateReference('FUND');
@@ -67,16 +68,16 @@ export class WalletService {
   }
 
   async transfer(senderId: string, recipientEmail: string, amount: number) {
-    if (amount <= 0) throw new Error('Amount must be greater than 0');
+    if (amount <= 0) throw new AppError('Amount must be greater than 0', 400);
 
     const senderWallet = await this.walletRepository.findByUserId(senderId);
-    if (!senderWallet) throw new Error('Sender wallet not found');
+    if (!senderWallet) throw new AppError('Sender wallet not found', 404);
 
     const recipientUser = await this.userService.getUserByEmail(recipientEmail);
-    if (recipientUser.id === senderId) throw new Error('Cannot transfer to yourself');
+    if (recipientUser.id === senderId) throw new AppError('Cannot transfer to yourself', 400);
 
     const recipientWallet = await this.walletRepository.findByUserId(recipientUser.id);
-    if (!recipientWallet) throw new Error('Recipient wallet not found');
+    if (!recipientWallet) throw new AppError('Recipient wallet not found', 404);
 
     const amountDecimal = new Prisma.Decimal(amount);
     const reference = this.generateReference('TXN');
@@ -87,7 +88,7 @@ export class WalletService {
       `;
 
       if (new Prisma.Decimal(lockedSender.balance).lessThan(amountDecimal)) {
-        throw new Error('Insufficient balance');
+        throw new AppError('Insufficient balance', 400);
       }
 
       const updated = await tx.wallet.update({
@@ -135,10 +136,10 @@ export class WalletService {
   }
 
   async withdraw(userId: string, amount: number) {
-    if (amount <= 0) throw new Error('Amount must be greater than 0');
+    if (amount <= 0) throw new AppError('Amount must be greater than 0', 400);
 
     const wallet = await this.walletRepository.findByUserId(userId);
-    if (!wallet) throw new Error('Wallet not found');
+    if (!wallet) throw new AppError('Wallet not found', 404);
 
     const amountDecimal = new Prisma.Decimal(amount);
     const reference = this.generateReference('WD');
@@ -149,7 +150,7 @@ export class WalletService {
       `;
 
       if (new Prisma.Decimal(lockedWallet.balance).lessThan(amountDecimal)) {
-        throw new Error('Insufficient balance');
+        throw new AppError('Insufficient balance', 400);
       }
 
       const updated = await tx.wallet.update({

@@ -18,10 +18,8 @@ export const idempotencyMiddleware = (idempotencyFor: string) => {
     try {
       const existingKey = await repository.findByKey(key);
       if (existingKey) {
-        return res.status(409).json({ 
-          message: 'idempotency key already exists',
-          cachedResult: existingKey.responseBody
-        });
+        res.setHeader('X-Idempotent-Replayed', 'true');
+        return res.status(existingKey.responseStatus).json(existingKey.responseBody);
       }
 
       const originalJson = res.json;

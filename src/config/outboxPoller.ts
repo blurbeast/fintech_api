@@ -42,7 +42,7 @@ async function pollOutbox() {
       // Use env limit
       const events = await tx.$queryRawUnsafe<OutboxEvent[]>(`
         SELECT * FROM outbox_events 
-        WHERE status = 'PENDING' 
+        WHERE status IN ('PENDING', 'FAILED') 
         ORDER BY "createdAt" ASC 
         FOR UPDATE SKIP LOCKED 
         LIMIT $1
