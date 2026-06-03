@@ -5,12 +5,10 @@ services:
     image: postgres:15-alpine
     container_name: fintech_db
     restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: fintech_wallet
+    env_file:
+      - .env
     ports:
-      - '5433:5432'
+      - '${DB_HOST_PORT:-5433}:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -19,7 +17,7 @@ services:
     container_name: fintech_redis
     restart: always
     ports:
-      - '6380:6379'
+      - '${REDIS_HOST_PORT:-6380}:6379'
     volumes:
       - redisdata:/data
 
@@ -30,15 +28,14 @@ services:
     container_name: fintech_app
     restart: always
     ports:
-      - '3001:3000'
+      - '${APP_HOST_PORT:-3001}:${PORT:-3000}'
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
-      - PORT=3000
-      - IP_ADDRESS=0.0.0.0
-      - DATABASE_URL=postgresql://postgres:password@db:5432/fintech_wallet?schema=public
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-fintech_wallet}?schema=public
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - JWT_SECRET=${JWT_SECRET:-randomsalt}
     depends_on:
       - db
       - redis
