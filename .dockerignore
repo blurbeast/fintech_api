@@ -5,3 +5,5 @@ dist
 coverage
 npm-debug.log
 *.log
+src/generated
+prisma/generated
