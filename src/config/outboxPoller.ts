@@ -1,51 +1,74 @@
 import { prisma } from './prisma';
 import { publishWalletCreationEvent, publishTransactionEvent } from './bullmq';
 import cron from 'node-cron';
-import { OutboxEvent } from '@prisma/client';
+import { TOPICS } from './constants';
+import { OutboxEvent, Prisma } from '@prisma/client';
+
+type TopicHandler = (payload: any) => Promise<void>;
+
+const topicHandlers: Record<string, TopicHandler> = {
+  [TOPICS.USER_CREATED]: async (payload: { userId: string }) => {
+    await publishWalletCreationEvent(payload.userId);
+  },
+  [TOPICS.TRANSACTION_CREATED]: async (payload: any) => {
+    await publishTransactionEvent(payload);
+  }
+};
+
+async function updateEventStatus(eventId: string, status: 'PROCESSED' | 'FAILED', tx?: Prisma.TransactionClient) {
+  const dbTx = tx ?? prisma;
+  if (status === 'PROCESSED') {
+    await dbTx.$executeRaw`
+      UPDATE outbox_events 
+      SET status = 'PROCESSED' 
+      WHERE id = ${eventId}::uuid
+    `;
+  } else {
+    await dbTx.$executeRaw`
+      UPDATE outbox_events 
+      SET status = 'FAILED' 
+      WHERE id = ${eventId}::uuid
+    `;
+  }
+}
 
 async function pollOutbox() {
   try {
-    // skip locked used.
-    const events = await prisma.$queryRaw<OutboxEvent[]>`
-      SELECT * FROM outbox_events 
-      WHERE status = 'PENDING' 
-      ORDER BY "createdAt" ASC 
-      FOR UPDATE SKIP LOCKED 
-      LIMIT 100
-    `;
+    await prisma.$transaction(async (tx) => {
+      // fifo approach for ordering purposes
+      // fifo approach so as to capture old stored data
+      const events = await tx.$queryRaw<OutboxEvent[]>`
+        SELECT * FROM outbox_events 
+        WHERE status = 'PENDING' 
+        ORDER BY "createdAt" ASC 
+        FOR UPDATE SKIP LOCKED 
+        LIMIT 100
+      `;
 
-    if (events.length === 0) return;
+      if (events.length === 0) return;
 
-    for (const event of events) {
-      console.log(`[OutboxPoller] Processing event: ${event.id} - ${event.topic}`);
-      
-      try {
-        if (event.topic === 'USER_CREATED') {
-          const payload = event.payload as { userId: string };
-          await publishWalletCreationEvent(payload.userId);
-        } else if (event.topic === 'TRANSACTION_CREATED') {
-          const payload = event.payload as any;
-          await publishTransactionEvent(payload);
+      for (const event of events) {
+        console.log(`[OutboxPoller] Processing event: ${event.id} - ${event.topic}`);
+
+        try {
+          const handler = topicHandlers[event.topic];
+          if (handler) {
+            await handler(event.payload);
+          } else {
+            console.warn(`[OutboxPoller] No handler found for topic: ${event.topic}`);
+          }
+
+          // mark as processed within the same transaction
+          await updateEventStatus(event.id, 'PROCESSED', tx);
+          console.log(`[OutboxPoller] Successfully processed event: ${event.id}`);
+        } catch (error) {
+          console.error(`[OutboxPoller] Failed to process event ${event.id}:`, error);
+
+          // mark as failed within the same transaction
+          await updateEventStatus(event.id, 'FAILED', tx);
         }
-
-        // mark as processed
-        await prisma.$executeRaw`
-          UPDATE outbox_events 
-          SET status = 'PROCESSED' 
-          WHERE id = ${event.id}::uuid
-        `;
-        console.log(`[OutboxPoller] Successfully processed event: ${event.id}`);
-      } catch (error) {
-        console.error(`[OutboxPoller] Failed to process event ${event.id}:`, error);
-        
-        // mark as failed
-        await prisma.$executeRaw`
-          UPDATE outbox_events 
-          SET status = 'FAILED' 
-          WHERE id = ${event.id}::uuid
-        `;
       }
-    }
+    });
   } catch (error) {
     console.error('[OutboxPoller] Error polling outbox:', error);
   }

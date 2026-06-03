@@ -1,6 +1,9 @@
 import { prisma } from '../../config/prisma';
 import { Prisma } from '@prisma/client';
+import { injectable, singleton } from 'tsyringe';
 
+@injectable()
+@singleton()
 export class IdempotencyRepository {
   async findByKey(key: string) {
     return prisma.idempotencyKey.findUnique({

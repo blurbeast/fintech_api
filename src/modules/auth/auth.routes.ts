@@ -1,22 +1,18 @@
 import { Router } from 'express';
+import { container } from 'tsyringe';
 import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
-import { AuthRepository } from './auth.repository';
 import { validateRequest } from '../../shared/middlewares/validateRequest';
 import { registerSchema, loginSchema, refreshSchema } from './auth.dto';
 
 const router = Router();
 
-// set up
-const authRepository = new AuthRepository();
-const authService = new AuthService(authRepository);
-const authController = new AuthController(authService);
+const authController = container.resolve(AuthController);
 
 /**
  * @swagger
  * tags:
  *   name: Auth
- *   description: User authentication
+ *   description: Authentication operations
  */
 
 /**
@@ -30,23 +26,12 @@ const authController = new AuthController(authService);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - full_name
- *               - email
- *               - password
- *             properties:
- *               full_name:
- *                 type: string
- *               email:
- *                 type: string
- *               password:
- *                 type: string
+ *             $ref: '#/components/schemas/RegisterDto'
  *     responses:
- *       200:
- *         description: Registered successfully
+ *       201:
+ *         description: Successfully registered
  *       400:
- *         description: Validation error
+ *         description: Validation Error
  */
 router.post('/register', validateRequest(registerSchema), authController.register.bind(authController));
 
@@ -61,15 +46,7 @@ router.post('/register', validateRequest(registerSchema), authController.registe
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *               password:
- *                 type: string
+ *             $ref: '#/components/schemas/LoginDto'
  *     responses:
  *       200:
  *         description: Logged in successfully
@@ -89,12 +66,7 @@ router.post('/login', validateRequest(loginSchema), authController.login.bind(au
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - refresh_token
- *             properties:
- *               refresh_token:
- *                 type: string
+ *             $ref: '#/components/schemas/RefreshDto'
  *     responses:
  *       200:
  *         description: Token refreshed

@@ -1,5 +1,8 @@
 import { prisma } from '../../config/prisma';
+import { injectable, singleton } from 'tsyringe';
 
+@injectable()
+@singleton()
 export class UserRepository {
   async findByIdWithWalletAndProfile(id: string) {
     return prisma.user.findUnique({

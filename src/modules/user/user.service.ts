@@ -1,7 +1,10 @@
 import { UserRepository } from './user.repository';
+import { injectable, singleton, inject } from 'tsyringe';
 
+@injectable()
+@singleton()
 export class UserService {
-  constructor(private userRepository: UserRepository) {}
+  constructor(@inject(UserRepository) private userRepository: UserRepository) {}
 
   async getMe(userId: string) {
     const user = await this.userRepository.findByIdWithWalletAndProfile(userId);

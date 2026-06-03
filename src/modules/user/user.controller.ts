@@ -2,9 +2,11 @@ import { Request, Response } from 'express';
 import { UserService } from './user.service';
 import { AuthRequest } from '../../shared/middlewares/authMiddleware';
 import { Catch } from '../../shared/decorators/catch.decorator';
+import { injectable, inject } from 'tsyringe';
 
+@injectable()
 export class UserController {
-  constructor(private userService: UserService) {}
+  constructor(@inject(UserService) private userService: UserService) {}
 
   @Catch()
   async getMe(req: AuthRequest, res: Response) {

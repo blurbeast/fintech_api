@@ -1,28 +1,14 @@
 import { Router } from 'express';
+import { container } from 'tsyringe';
 import { TransactionController } from './transaction.controller';
-import { TransactionService } from './transaction.service';
-import { TransactionRepository } from './transaction.repository';
-import { WalletService } from '../wallet/wallet.service';
-import { WalletRepository } from '../wallet/wallet.repository';
-import { UserService } from '../user/user.service';
-import { UserRepository } from '../user/user.repository';
 import { authMiddleware } from '../../shared/middlewares/authMiddleware';
 import { validateQuery } from '../../shared/middlewares/validateQuery';
-import { transactionQuerySchema } from './transaction.dto';
+import { validateParams } from '../../shared/middlewares/validateParams';
+import { transactionQuerySchema, transactionIdSchema } from './transaction.dto';
 
 const router = Router();
 
-// set up
-const transactionRepository = new TransactionRepository();
-
-const walletRepository = new WalletRepository();
-const userRepository = new UserRepository();
-const userService = new UserService(userRepository);
-
-const walletService = new WalletService(walletRepository, userService);
-
-const transactionService = new TransactionService(transactionRepository, walletService);
-const transactionController = new TransactionController(transactionService);
+const transactionController = container.resolve(TransactionController);
 
 // route requires authentication
 router.use(authMiddleware);
@@ -96,6 +82,6 @@ router.get('/', validateQuery(transactionQuerySchema), transactionController.get
  *       401:
  *         description: Unauthorized
  */
-router.get('/:id', transactionController.getTransactionById.bind(transactionController));
+router.get('/:id', validateParams(transactionIdSchema), transactionController.getTransactionById.bind(transactionController));
 
 export default router;

@@ -1,10 +1,12 @@
 import { Worker, Job } from 'bullmq';
 import { bullmqConnection } from './bullmq';
+import { container } from 'tsyringe';
 import { WalletRepository } from '../modules/wallet/wallet.repository';
+import { QUEUES } from './constants';
 
-const walletRepository = new WalletRepository();
+const walletRepository = container.resolve(WalletRepository);
 
-export const walletWorker = new Worker('wallet-creation-queue', async (job: Job) => {
+export const walletWorker = new Worker(QUEUES.WALLET_CREATION, async (job: Job) => {
   const { userId } = job.data;
   if (!userId) {
     throw new Error('userId is missing in job data');

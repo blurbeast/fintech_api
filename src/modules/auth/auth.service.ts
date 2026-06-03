@@ -5,9 +5,16 @@ import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { User } from '@prisma/client';
+import { UserService } from '../user/user.service';
+import { injectable, singleton, inject } from 'tsyringe';
 
+@injectable()
+@singleton()
 export class AuthService {
-  constructor(private authRepository: AuthRepository) {}
+  constructor(
+    @inject(AuthRepository) private authRepository: AuthRepository,
+    @inject(UserService) private userService: UserService
+  ) {}
 
   async register(data: RegisterDto) {
     const existingUser = await this.authRepository.findByEmail(data.email);

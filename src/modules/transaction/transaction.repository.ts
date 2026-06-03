@@ -1,6 +1,9 @@
 import { prisma } from '../../config/prisma';
 import { TransactionType, TransactionStatus, Prisma } from '@prisma/client';
+import { injectable, singleton } from 'tsyringe';
 
+@injectable()
+@singleton()
 export class TransactionRepository {
   async create(data: {
     walletId: string;

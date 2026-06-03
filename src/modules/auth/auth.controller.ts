@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { registerSchema, loginSchema } from './auth.dto';
 import { Catch } from '../../shared/decorators/catch.decorator';
+import { injectable, inject } from 'tsyringe';
 
+@injectable()
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(@inject(AuthService) private authService: AuthService) {}
 
   @Catch()
   async register(req: Request, res: Response) {

@@ -2,9 +2,11 @@ import { Response } from 'express';
 import { TransactionService } from './transaction.service';
 import { AuthRequest } from '../../shared/middlewares/authMiddleware';
 import { Catch } from '../../shared/decorators/catch.decorator';
+import { injectable, inject } from 'tsyringe';
 
+@injectable()
 export class TransactionController {
-  constructor(private transactionService: TransactionService) {}
+  constructor(@inject(TransactionService) private transactionService: TransactionService) {}
 
   @Catch()
   async getTransactions(req: AuthRequest, res: Response) {

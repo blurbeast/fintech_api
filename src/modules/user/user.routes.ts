@@ -1,15 +1,11 @@
 import { Router } from 'express';
+import { container } from 'tsyringe';
 import { UserController } from './user.controller';
-import { UserService } from './user.service';
-import { UserRepository } from './user.repository';
 import { authMiddleware } from '../../shared/middlewares/authMiddleware';
 
 const router = Router();
 
-// set up
-const userRepository = new UserRepository();
-const userService = new UserService(userRepository);
-const userController = new UserController(userService);
+const userController = container.resolve(UserController);
 
 /**
  * @swagger

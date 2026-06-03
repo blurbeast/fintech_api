@@ -1,6 +1,9 @@
 import { prisma } from '../../config/prisma';
 import { RegisterDto } from './auth.dto';
+import { injectable, singleton } from 'tsyringe';
 
+@injectable()
+@singleton()
 export class AuthRepository {
   async registerWithOutbox(data: RegisterDto, passwordHash: string) {
     return prisma.$transaction(async (tx) => {

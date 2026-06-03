@@ -1,6 +1,9 @@
+import { injectable, singleton } from 'tsyringe';
 import { prisma } from '../../config/prisma';
 import { Prisma } from '@prisma/client';
 
+@injectable()
+@singleton()
 export class WalletRepository {
   async create(userId: string) {
     return prisma.wallet.create({

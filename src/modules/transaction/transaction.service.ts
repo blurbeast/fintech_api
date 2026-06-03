@@ -1,11 +1,12 @@
 import { TransactionRepository } from './transaction.repository';
 import { TransactionType, TransactionStatus, Prisma } from '@prisma/client';
-import { WalletService } from '../wallet/wallet.service';
+import { injectable, singleton, inject } from 'tsyringe';
 
+@injectable()
+@singleton()
 export class TransactionService {
   constructor(
-    private transactionRepository: TransactionRepository,
-    private walletService: WalletService
+    @inject(TransactionRepository) private transactionRepository: TransactionRepository,
   ) {}
 
   async getTransactions(filters: { userId?: string; walletId?: string }, page: number, limit: number) {

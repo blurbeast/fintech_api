@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { IdempotencyRepository } from './idempotency.repository';
+import { container } from 'tsyringe';
 
 export const idempotencyMiddleware = (idempotencyFor: string) => {
-  const repository = new IdempotencyRepository();
+  const repository = container.resolve(IdempotencyRepository);
 
   return async (req: Request, res: Response, next: NextFunction) => {
     const key = req.headers['idempotency-key'] as string;

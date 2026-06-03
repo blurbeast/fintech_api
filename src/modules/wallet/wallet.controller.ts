@@ -3,9 +3,11 @@ import { WalletService } from './wallet.service';
 import { amountSchema, transferSchema } from './wallet.dto';
 import { AuthRequest } from '../../shared/middlewares/authMiddleware';
 import { Catch } from '../../shared/decorators/catch.decorator';
+import { injectable, inject } from 'tsyringe';
 
+@injectable()
 export class WalletController {
-  constructor(private walletService: WalletService) {}
+  constructor(@inject(WalletService) private walletService: WalletService) {}
 
   @Catch()
   async fund(req: AuthRequest, res: Response) {

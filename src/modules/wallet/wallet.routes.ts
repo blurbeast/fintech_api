@@ -1,9 +1,6 @@
 import { Router } from 'express';
+import { container } from 'tsyringe';
 import { WalletController } from './wallet.controller';
-import { WalletService } from './wallet.service';
-import { WalletRepository } from './wallet.repository';
-import { UserRepository } from '../user/user.repository';
-import { UserService } from '../user/user.service';
 import { authMiddleware } from '../../shared/middlewares/authMiddleware';
 import { idempotencyMiddleware } from '../idempotency/idempotency.middleware';
 import { validateRequest } from '../../shared/middlewares/validateRequest';
@@ -11,40 +8,33 @@ import { amountSchema, transferSchema } from './wallet.dto';
 
 const router = Router();
 
-// set up
-const walletRepository = new WalletRepository();
-const userRepository = new UserRepository();
+const walletController = container.resolve(WalletController);
 
-const userService = new UserService(userRepository);
-
-const walletService = new WalletService(walletRepository, userService);
-const walletController = new WalletController(walletService);
-
-// route requires authentication
+// require auth for all wallet routes
 router.use(authMiddleware);
 
 /**
  * @swagger
  * tags:
  *   name: Wallet
- *   description: Wallet management
+ *   description: Wallet operations
  */
 
 /**
  * @swagger
  * /api/wallet/fund:
  *   post:
- *     summary: Fund wallet
+ *     summary: Fund user wallet
  *     tags: [Wallet]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: header
  *         name: Idempotency-Key
- *         required: false
+ *         required: true
  *         schema:
  *           type: string
- *         description: Unique key to prevent duplicate funding requests
+ *         description: Unique key to prevent duplicate funding
  *     requestBody:
  *       required: true
  *       content:
@@ -56,13 +46,21 @@ router.use(authMiddleware);
  *             properties:
  *               amount:
  *                 type: number
+ *                 minimum: 0.01
  *     responses:
  *       200:
- *         description: Wallet funded
+ *         description: Wallet funded successfully
+ *       400:
+ *         description: Invalid amount
  *       401:
  *         description: Unauthorized
  */
-router.post('/fund', validateRequest(amountSchema), idempotencyMiddleware('FUND_WALLET'), walletController.fund.bind(walletController));
+router.post(
+  '/fund',
+  idempotencyMiddleware('FUND_WALLET'),
+  validateRequest(amountSchema),
+  walletController.fund.bind(walletController)
+);
 
 /**
  * @swagger
@@ -75,10 +73,10 @@ router.post('/fund', validateRequest(amountSchema), idempotencyMiddleware('FUND_
  *     parameters:
  *       - in: header
  *         name: Idempotency-Key
- *         required: false
+ *         required: true
  *         schema:
  *           type: string
- *         description: Unique key to prevent duplicate transfer requests
+ *         description: Unique key to prevent duplicate transfers
  *     requestBody:
  *       required: true
  *       content:
@@ -93,15 +91,23 @@ router.post('/fund', validateRequest(amountSchema), idempotencyMiddleware('FUND_
  *                 type: string
  *               amount:
  *                 type: number
+ *                 minimum: 0.01
  *     responses:
  *       200:
  *         description: Transfer successful
  *       400:
- *         description: Insufficient funds or invalid recipient
+ *         description: Insufficient balance or invalid input
+ *       404:
+ *         description: Recipient not found
  *       401:
  *         description: Unauthorized
  */
-router.post('/transfer', validateRequest(transferSchema), idempotencyMiddleware('TRANSFER'), walletController.transfer.bind(walletController));
+router.post(
+  '/transfer',
+  idempotencyMiddleware('TRANSFER'),
+  validateRequest(transferSchema),
+  walletController.transfer.bind(walletController)
+);
 
 /**
  * @swagger
@@ -114,10 +120,10 @@ router.post('/transfer', validateRequest(transferSchema), idempotencyMiddleware(
  *     parameters:
  *       - in: header
  *         name: Idempotency-Key
- *         required: false
+ *         required: true
  *         schema:
  *           type: string
- *         description: Unique key to prevent duplicate withdrawal requests
+ *         description: Unique key to prevent duplicate withdrawals
  *     requestBody:
  *       required: true
  *       content:
@@ -129,14 +135,20 @@ router.post('/transfer', validateRequest(transferSchema), idempotencyMiddleware(
  *             properties:
  *               amount:
  *                 type: number
+ *                 minimum: 0.01
  *     responses:
  *       200:
  *         description: Withdrawal successful
  *       400:
- *         description: Insufficient funds
+ *         description: Insufficient balance
  *       401:
  *         description: Unauthorized
  */
-router.post('/withdraw', validateRequest(amountSchema), idempotencyMiddleware('WITHDRAW'), walletController.withdraw.bind(walletController));
+router.post(
+  '/withdraw',
+  idempotencyMiddleware('WITHDRAW'),
+  validateRequest(amountSchema),
+  walletController.withdraw.bind(walletController)
+);
 
 export default router;

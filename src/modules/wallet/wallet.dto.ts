@@ -27,12 +27,12 @@ import { z } from 'zod';
  */
 
 export const amountSchema = z.object({
-  amount: z.number().positive(),
+  amount: z.number().positive('amount must be positive').nonoptional(),
 });
 
 export const transferSchema = z.object({
-  recipient_email: z.string().trim().email(),
-  amount: z.number().positive(),
+  recipient_email: z.string().trim().lowercase().nonempty('recipient_email is required').email('Invalid email address'),
+  amount: z.number().positive('amount must be positive').nonoptional(),
 });
 
 export type AmountDto = z.infer<typeof amountSchema>;

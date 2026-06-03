@@ -41,18 +41,18 @@ import { z } from 'zod';
  */
 
 export const registerSchema = z.object({
-  full_name: z.string().min(2),
-  email: z.string().trim().email(),
-  password: z.string().min(6),
+  full_name: z.string().nonempty('full_name is required').min(2, 'full_name must be at least 2 characters long'),
+  email: z.string().nonempty('email is required').lowercase().trim().email(),
+  password: z.string().nonempty('password is required').min(6, 'password must be at least 6 characters long').regex(/^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{6,}$/, 'password must contain at least one number, one lowercase letter, one uppercase letter, and be at least 6 characters long'),
 });
 
 export const loginSchema = z.object({
-  email: z.string().trim().email(),
-  password: z.string(),
+  email: z.string().lowercase().trim().nonempty().email(),
+  password: z.string().nonempty('password is required').nonoptional(),
 });
 
 export const refreshSchema = z.object({
-  refresh_token: z.string(),
+  refresh_token: z.string().nonempty('refresh_token is required'),
 });
 
 export type RegisterDto = z.infer<typeof registerSchema>;

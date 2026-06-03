@@ -1,15 +1,22 @@
 import { WalletRepository } from './wallet.repository';
-import { TransactionService } from '../transaction/transaction.service';
 import { UserService } from '../user/user.service';
 import { prisma } from '../../config/prisma';
 import { Prisma, TransactionType } from '@prisma/client';
 import crypto from 'crypto';
+import { injectable, singleton, inject } from 'tsyringe';
+import { TOPICS } from '../../config/constants';
 
+@injectable()
+@singleton()
 export class WalletService {
   constructor(
-    private walletRepository: WalletRepository,
-    private userService: UserService
+    @inject(WalletRepository) private walletRepository: WalletRepository,
+    @inject(UserService) private userService: UserService
   ) {}
+
+  private generateReference(prefix: string): string {
+    return `${prefix}_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+  }
 
   async getWalletByUserId(userId: string) {
     return this.walletRepository.findByUserId(userId);
@@ -22,7 +29,7 @@ export class WalletService {
     if (!wallet) throw new Error('Wallet not found');
 
     const amountDecimal = new Prisma.Decimal(amount);
-    const reference = `FUND_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+    const reference = this.generateReference('FUND');
 
     const [updatedWallet] = await prisma.$transaction([
       prisma.wallet.update({
@@ -31,7 +38,7 @@ export class WalletService {
       }),
       prisma.outboxEvent.create({
         data: {
-          topic: 'TRANSACTION_CREATED',
+          topic: TOPICS.TRANSACTION_CREATED,
           payload: {
             walletId: wallet.id,
             type: TransactionType.FUND,
@@ -58,25 +65,30 @@ export class WalletService {
     if (!recipientWallet) throw new Error('Recipient wallet not found');
 
     const amountDecimal = new Prisma.Decimal(amount);
+    const reference = this.generateReference('TXN');
 
-    if (new Prisma.Decimal(senderWallet.balance).lessThan(amountDecimal)) {
-      throw new Error('Insufficient balance');
-    }
+    const updatedSenderWallet = await prisma.$transaction(async (tx) => {
+      const [lockedSender] = await tx.$queryRaw<{ balance: Prisma.Decimal }[]>`
+        SELECT balance FROM wallets WHERE id = ${senderWallet.id}::uuid FOR UPDATE
+      `;
 
-    const reference = `TXN_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+      if (new Prisma.Decimal(lockedSender.balance).lessThan(amountDecimal)) {
+        throw new Error('Insufficient balance');
+      }
 
-    const [updatedSenderWallet] = await prisma.$transaction([
-      prisma.wallet.update({
+      const updated = await tx.wallet.update({
         where: { id: senderWallet.id },
         data: { balance: { decrement: amountDecimal } },
-      }),
-      prisma.wallet.update({
+      });
+
+      await tx.wallet.update({
         where: { id: recipientWallet.id },
         data: { balance: { increment: amountDecimal } },
-      }),
-      prisma.outboxEvent.create({
+      });
+
+      await tx.outboxEvent.create({
         data: {
-          topic: 'TRANSACTION_CREATED',
+          topic: TOPICS.TRANSACTION_CREATED,
           payload: {
             walletId: senderWallet.id,
             type: TransactionType.TRANSFER,
@@ -84,10 +96,11 @@ export class WalletService {
             reference: `${reference}_OUT`,
           },
         },
-      }),
-      prisma.outboxEvent.create({
+      });
+
+      await tx.outboxEvent.create({
         data: {
-          topic: 'TRANSACTION_CREATED',
+          topic: TOPICS.TRANSACTION_CREATED,
           payload: {
             walletId: recipientWallet.id,
             type: TransactionType.TRANSFER,
@@ -95,8 +108,10 @@ export class WalletService {
             reference: `${reference}_IN`,
           },
         },
-      }),
-    ]);
+      });
+
+      return updated;
+    });
 
     return {
       message: 'Transfer queued successfully',
@@ -112,21 +127,25 @@ export class WalletService {
     if (!wallet) throw new Error('Wallet not found');
 
     const amountDecimal = new Prisma.Decimal(amount);
+    const reference = this.generateReference('WD');
 
-    if (new Prisma.Decimal(wallet.balance).lessThan(amountDecimal)) {
-      throw new Error('Insufficient balance');
-    }
+    const updatedWallet = await prisma.$transaction(async (tx) => {
+      const [lockedWallet] = await tx.$queryRaw<{ balance: Prisma.Decimal }[]>`
+        SELECT balance FROM wallets WHERE id = ${wallet.id}::uuid FOR UPDATE
+      `;
 
-    const reference = `WD_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+      if (new Prisma.Decimal(lockedWallet.balance).lessThan(amountDecimal)) {
+        throw new Error('Insufficient balance');
+      }
 
-    const [updatedWallet] = await prisma.$transaction([
-      prisma.wallet.update({
+      const updated = await tx.wallet.update({
         where: { id: wallet.id },
         data: { balance: { decrement: amountDecimal } },
-      }),
-      prisma.outboxEvent.create({
+      });
+
+      await tx.outboxEvent.create({
         data: {
-          topic: 'TRANSACTION_CREATED',
+          topic: TOPICS.TRANSACTION_CREATED,
           payload: {
             walletId: wallet.id,
             type: TransactionType.WITHDRAWAL,
@@ -134,8 +153,10 @@ export class WalletService {
             reference,
           },
         },
-      }),
-    ]);
+      });
+
+      return updated;
+    });
 
     return { wallet: updatedWallet, reference };
   }
