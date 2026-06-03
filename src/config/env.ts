@@ -10,9 +10,10 @@ const envSchema = z.object({
   DATABASE_URL: z.string(),
   REDIS_HOST: z.string().default('localhost'),
   REDIS_PORT: z.string().default('6380').transform(Number),
-  JWT_SECRET: z.string(),
+  JWT_SECRET: z.string().min(64, 'JWT_SECRET must be at least 64 characters long'),
   JWT_EXPIRES_IN: z.string().default('1h'),
   JWT_REFRESH_EXPIRE_IN: z.string().default('1d'),
+  JWT_ISSUER: z.string().default('fintech_api'),
 });
 
 const _env = envSchema.safeParse(process.env);

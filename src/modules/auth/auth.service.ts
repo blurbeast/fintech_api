@@ -89,7 +89,10 @@ export class AuthService {
     const token = jwt.sign(
       {userId: user.id, email: user.email},
       env.JWT_SECRET,
-      {expiresIn: env.JWT_EXPIRES_IN as any}
+      {
+        expiresIn: env.JWT_EXPIRES_IN as any,
+        issuer: env.JWT_ISSUER
+      }
     );
 
     return token;
